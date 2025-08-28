@@ -1,0 +1,14 @@
+version: '2'
+
+linters:
+  disable:
+    - wsl  # Disable deprecated wsl linter
+    - testpackage  # Disable testpackage for internal tests
+  enable:
+    - wsl_v5  # Enable the new wsl_v5 linter
+
+linters-settings:
+  wsl_v5:
+    allow-first-in-block: true
+    allow-whole-block: false
+    branch-max-lines: 2

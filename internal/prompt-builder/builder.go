@@ -1,17 +1,25 @@
+// Package promptbuilder provides functionality for building prompts from various components.
 package promptbuilder
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 )
 
-// PromptBuilder assembles prompts from various components
+// Static errors for validation
+var (
+	ErrTaskNameRequired     = errors.New("task name is required")
+	ErrSystemMessageRequired = errors.New("system message is required")
+)
+
+// PromptBuilder assembles prompts from various components.
 type PromptBuilder struct {
 	fileProcessor *FileProcessor
 	systemPresets map[string]string
 }
 
-// NewPromptBuilder creates a new prompt builder
+// NewPromptBuilder creates a new prompt builder.
 func NewPromptBuilder(fileProcessor *FileProcessor) *PromptBuilder {
 	return &PromptBuilder{
 		fileProcessor: fileProcessor,
@@ -19,16 +27,20 @@ func NewPromptBuilder(fileProcessor *FileProcessor) *PromptBuilder {
 	}
 }
 
-// BuildPrompt assembles a prompt from the given request
+// BuildPrompt assembles a prompt from the given request.
 func (pb *PromptBuilder) BuildPrompt(req *BuildRequest) (*BuildResult, error) {
 	// Validate the request
-	if err := req.Validate(); err != nil {
+	err := req.Validate()
+	if err != nil {
 		return nil, fmt.Errorf("invalid request: %w", err)
 	}
 
 	// Create the prompt
 	prompt := &Prompt{
-		UserPrompt: req.Prompt,
+		SystemMessage: "",
+		UserPrompt:    req.Prompt,
+		FileContent:   "",
+		Guidelines:    "",
 	}
 
 	// Add system message from task preset if specified
@@ -59,40 +71,40 @@ func (pb *PromptBuilder) BuildPrompt(req *BuildRequest) (*BuildResult, error) {
 		prompt.FileContent = pb.fileProcessor.FenceContent(fileContent.Content, fileContent.Path)
 	}
 
-	// Add image path if provided
-	if req.Image != "" {
-		prompt.ImagePath = req.Image
-	}
-
 	return &BuildResult{
 		Prompt: prompt,
+		Error:  nil,
 	}, nil
 }
 
-// AddSystemPreset adds a system message preset for a specific task
+// AddSystemPreset adds a system message preset for a specific task.
 func (pb *PromptBuilder) AddSystemPreset(task, message string) error {
 	if strings.TrimSpace(task) == "" {
-		return fmt.Errorf("task name is required")
+		return ErrTaskNameRequired
 	}
+
 	if strings.TrimSpace(message) == "" {
-		return fmt.Errorf("system message is required")
+		return ErrSystemMessageRequired
 	}
 
 	pb.systemPresets[task] = message
+
 	return nil
 }
 
-// GetSystemPreset retrieves a system message preset for a specific task
+// GetSystemPreset retrieves a system message preset for a specific task.
 func (pb *PromptBuilder) GetSystemPreset(task string) (string, bool) {
 	preset, exists := pb.systemPresets[task]
+
 	return preset, exists
 }
 
-// ListSystemPresets returns all available system presets
+// ListSystemPresets returns all available system presets.
 func (pb *PromptBuilder) ListSystemPresets() []string {
 	presets := make([]string, 0, len(pb.systemPresets))
 	for task := range pb.systemPresets {
 		presets = append(presets, task)
 	}
+
 	return presets
 }

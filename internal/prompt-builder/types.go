@@ -1,89 +1,126 @@
 package promptbuilder
 
 import (
-	"fmt"
+	"errors"
 	"strings"
 )
 
-// BuildRequest represents a request to build a prompt
+// Static errors for validation
+var (
+	ErrPromptRequired      = errors.New("prompt is required")
+	ErrFilePathRequired    = errors.New("file path is required")
+	ErrFileContentRequired = errors.New("file content is required")
+)
+
+// BuildRequest represents a request to build a prompt.
 type BuildRequest struct {
 	Prompt        string `json:"prompt"`
 	File          string `json:"file,omitempty"`
 	Task          string `json:"task,omitempty"`
-	SystemMessage string `json:"system_message,omitempty"`
+	SystemMessage string `json:"systemMessage,omitempty"`
 	Guidelines    string `json:"guidelines,omitempty"`
 	Image         string `json:"image,omitempty"`
-	OutputFormat  string `json:"output_format,omitempty"`
-	EstimateTokens bool  `json:"estimate_tokens,omitempty"`
-	Model         string `json:"model,omitempty"`
+	OutputFormat  string `json:"outputFormat,omitempty"`
 }
 
-// Validate checks if the build request is valid
+// Validate checks if the build request is valid.
 func (r *BuildRequest) Validate() error {
 	if strings.TrimSpace(r.Prompt) == "" {
-		return fmt.Errorf("prompt is required")
+		return ErrPromptRequired
 	}
+
 	return nil
 }
 
-// Prompt represents the assembled prompt
+// Prompt represents the assembled prompt.
 type Prompt struct {
-	SystemMessage string `json:"system_message,omitempty"`
-	UserPrompt    string `json:"user_prompt"`
-	FileContent   string `json:"file_content,omitempty"`
+	SystemMessage string `json:"systemMessage,omitempty"`
+	UserPrompt    string `json:"userPrompt"`
+	FileContent   string `json:"fileContent,omitempty"`
 	Guidelines    string `json:"guidelines,omitempty"`
-	ImagePath     string `json:"image_path,omitempty"`
-	TokenEstimate int    `json:"token_estimate,omitempty"`
 }
 
-// String returns the formatted prompt as a string
+// String returns the formatted prompt as a string.
 func (p *Prompt) String() string {
 	var parts []string
-	
+
 	if p.SystemMessage != "" {
 		parts = append(parts, p.SystemMessage)
 	}
-	
+
 	if p.Guidelines != "" {
 		parts = append(parts, "Guidelines:", p.Guidelines)
 	}
-	
+
 	if p.FileContent != "" {
 		parts = append(parts, "File content:", p.FileContent)
 	}
-	
+
 	parts = append(parts, p.UserPrompt)
-	
+
 	return strings.Join(parts, "\n\n")
 }
 
-// FileContent represents file content with metadata
+// FileContent represents file content with metadata.
 type FileContent struct {
 	Path    string `json:"path"`
 	Content []byte `json:"content"`
 	Size    int64  `json:"size"`
 }
 
-// Validate checks if the file content is valid
+// Validate checks if the file content is valid.
 func (fc *FileContent) Validate() error {
 	if strings.TrimSpace(fc.Path) == "" {
-		return fmt.Errorf("file path is required")
+		return ErrFilePathRequired
 	}
+
 	if len(fc.Content) == 0 {
-		return fmt.Errorf("file content is required")
+		return ErrFileContentRequired
 	}
+
 	return nil
 }
 
-// SystemPreset represents a predefined system message
+// SystemPreset represents a predefined system message.
 type SystemPreset struct {
 	Name    string `json:"name"`
 	Message string `json:"message"`
 }
 
-// BuildResult represents the result of building a prompt
+// BuildResult represents the result of building a prompt.
 type BuildResult struct {
-	Prompt        *Prompt `json:"prompt"`
-	TokenEstimate int     `json:"token_estimate,omitempty"`
-	Error         error   `json:"error,omitempty"`
+	Prompt *Prompt `json:"prompt"`
+	Error  error   `json:"error,omitempty"`
+}
+
+// CLIFlags represents command line interface flags for the prompt builder.
+type CLIFlags struct {
+	Prompt        string `json:"prompt"`
+	File          string `json:"file,omitempty"`
+	Task          string `json:"task,omitempty"`
+	SystemMessage string `json:"systemMessage,omitempty"`
+	Guidelines    string `json:"guidelines,omitempty"`
+	OutputFormat  string `json:"outputFormat,omitempty"`
+}
+
+// Validate checks if the CLI flags are valid.
+func (f *CLIFlags) Validate() error {
+	if strings.TrimSpace(f.Prompt) == "" {
+		return ErrPromptRequired
+	}
+
+	return nil
+}
+
+// ToBuildRequest converts CLI flags to a BuildRequest.
+func (f *CLIFlags) ToBuildRequest() *BuildRequest {
+	return &BuildRequest{
+		Prompt:        f.Prompt,
+		File:          f.File,
+		Task:          f.Task,
+		SystemMessage: f.SystemMessage,
+		Guidelines:    f.Guidelines,
+		Image:         "",
+		OutputFormat:  f.OutputFormat,
+	}
 }

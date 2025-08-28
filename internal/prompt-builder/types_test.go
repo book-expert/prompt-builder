@@ -60,18 +60,20 @@ func TestPrompt_String(t *testing.T) {
 	}
 
 	result := prompt.String()
-	
+
 	if result == "" {
 		t.Error("Expected non-empty prompt string")
 	}
-	
+
 	// Should contain all components
 	if !contains(result, "You are a helpful assistant") {
 		t.Error("Expected system message in prompt")
 	}
+
 	if !contains(result, "Explain this code") {
 		t.Error("Expected user prompt in prompt")
 	}
+
 	if !contains(result, "func main() { }") {
 		t.Error("Expected file content in prompt")
 	}
@@ -119,16 +121,17 @@ func TestFileContent_Validate(t *testing.T) {
 	}
 }
 
-// Helper function
+// Helper function.
 func contains(s, substr string) bool {
-	return len(s) >= len(substr) && (s == substr || len(s) > len(substr) && 
-		(s[:len(substr)] == substr || s[len(s)-len(substr):] == substr || 
-		func() bool {
-			for i := 1; i <= len(s)-len(substr); i++ {
-				if s[i:i+len(substr)] == substr {
-					return true
+	return len(s) >= len(substr) && (s == substr || len(s) > len(substr) &&
+		(s[:len(substr)] == substr || s[len(s)-len(substr):] == substr ||
+			func() bool {
+				for i := 1; i <= len(s)-len(substr); i++ {
+					if s[i:i+len(substr)] == substr {
+						return true
+					}
 				}
-			}
-			return false
-		}()))
+
+				return false
+			}()))
 }
