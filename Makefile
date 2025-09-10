@@ -77,7 +77,7 @@ lint: lint-golangci-lint lint-gofmt
 .PHONY: lint-golangci-lint
 lint-golangci-lint:
 	@echo "Running golangci-lint..."
-	golangci-lint run
+	golangci-lint run --fix
 
 .PHONY: lint-gofmt
 lint-gofmt:
