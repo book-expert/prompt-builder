@@ -87,7 +87,7 @@ func RunCLI(args []string, output io.Writer) error {
 	fileProcessor := NewFileProcessor(1024*1024, allowedExtensions)
 
 	// Create prompt builder
-	builder := NewPromptBuilder(fileProcessor)
+	builder := New(fileProcessor)
 
 	// Add some default system presets
 	codingPreset := "You are an expert software developer. Write clean, efficient, and well-documented code."
