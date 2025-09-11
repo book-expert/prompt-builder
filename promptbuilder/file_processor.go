@@ -196,34 +196,39 @@ func (fp *FileProcessor) validatePathSecurity(absPath string) error {
 	}
 	for _, pattern := range suspiciousPatterns {
 		if strings.Contains(absPath, pattern) {
-			return fmt.Errorf("%w: file path %s contains suspicious pattern: %s", ErrSuspiciousPath, absPath, pattern)
+			return fmt.Errorf(
+				"%w: file path %s contains suspicious pattern: %s",
+				ErrSuspiciousPath,
+				absPath,
+				pattern,
+			)
 		}
 	}
 
-	// Check for absolute paths that are outside user's home directory or project directories
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
 		return fmt.Errorf("failed to get user home directory: %w", err)
 	}
+	cwd, err := os.Getwd()
+	if err != nil {
+		return fmt.Errorf("failed to get current working directory: %w", err)
+	}
+	tmpDir := os.TempDir() // Get the system's temp directory (usually /tmp)
 
-	// Allow paths within user's home directory or current directory
-	// This provides security while allowing legitimate file access
-	if !strings.HasPrefix(absPath, homeDir) {
-		// If not in home directory, check if it's a relative path that resolves to current directory
-		cwd, err := os.Getwd()
-		if err != nil {
-			return fmt.Errorf("failed to get current working directory: %w", err)
-		}
+	// CHANGED: Check if the path is within any of the allowed base directories.
+	isAllowed := strings.HasPrefix(absPath, homeDir) ||
+		strings.HasPrefix(absPath, cwd) ||
+		strings.HasPrefix(absPath, tmpDir)
 
-		if !strings.HasPrefix(absPath, cwd) {
-			return fmt.Errorf(
-				"%w: file path %s is outside allowed directories (home: %s, cwd: %s)",
-				ErrPathOutsideAllowed,
-				absPath,
-				homeDir,
-				cwd,
-			)
-		}
+	if !isAllowed {
+		return fmt.Errorf(
+			"%w: file path %s is outside allowed directories (home: %s, cwd: %s, tmp: %s)",
+			ErrPathOutsideAllowed,
+			absPath,
+			homeDir,
+			cwd,
+			tmpDir,
+		)
 	}
 
 	// Ensure the file exists and is a regular file
