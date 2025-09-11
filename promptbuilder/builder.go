@@ -1,48 +1,65 @@
-// ./internal/promptbuilder/builder.go
+// ./promptbuilder/builder.go
 package promptbuilder
 
 import (
-	"bytes"
 	"fmt"
-	"text/template"
+	"strings"
 )
 
-// Builder holds the state for a single prompt-building operation.
+// Builder is the main engine for constructing prompts.
 type Builder struct {
-	template *template.Template
-	vars     map[string]any
+	fileProcessor *FileProcessor
+	systemPresets map[string]string
 }
 
-// New creates and initializes a new prompt builder with the given template string.
-func New(templateStr string) (*Builder, error) {
-	tmpl, err := template.New("prompt").Parse(templateStr)
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse template: %w", err)
-	}
-
+// New creates a new prompt builder with a given file processor.
+func New(fp *FileProcessor) *Builder {
 	return &Builder{
-		template: tmpl,
-		vars:     make(map[string]any),
+		fileProcessor: fp,
+		systemPresets: make(map[string]string),
+	}
+}
+
+// AddSystemPreset adds a named system message preset to the builder.
+func (b *Builder) AddSystemPreset(name, message string) error {
+	if strings.TrimSpace(name) == "" {
+		return fmt.Errorf("preset name cannot be empty")
+	}
+	b.systemPresets[name] = message
+	return nil
+}
+
+// BuildPrompt constructs a prompt from a BuildRequest.
+func (b *Builder) BuildPrompt(req *BuildRequest) (*BuildResult, error) {
+	if err := req.Validate(); err != nil {
+		return nil, fmt.Errorf("invalid build request: %w", err)
+	}
+
+	prompt := &Prompt{
+		UserPrompt: req.Prompt,
+		Guidelines: req.Guidelines,
+	}
+
+	// Handle the system message logic
+	if req.SystemMessage != "" {
+		prompt.SystemMessage = req.SystemMessage
+	} else if req.Task != "" {
+		if preset, ok := b.systemPresets[req.Task]; ok {
+			prompt.SystemMessage = preset
+		}
+	}
+
+	// Handle the file content
+	if req.File != "" {
+		fileContent, err := b.fileProcessor.ProcessFile(req.File)
+		if err != nil {
+			return nil, fmt.Errorf("failed to process file: %w", err)
+		}
+		prompt.FileContent = b.fileProcessor.FenceContent(fileContent.Content, fileContent.Path)
+	}
+
+	return &BuildResult{
+		Prompt: prompt,
+		Error:  nil,
 	}, nil
-}
-
-// Set adds or updates a single variable for the template.
-func (b *Builder) Set(key string, value any) {
-	b.vars[key] = value
-}
-
-// SetMap adds or updates multiple variables from a map.
-func (b *Builder) SetMap(vars map[string]any) {
-	for key, value := range vars {
-		b.vars[key] = value
-	}
-}
-
-// Build executes the template with the stored variables and returns the result.
-func (b *Builder) Build() (string, error) {
-	var buf bytes.Buffer
-	if err := b.template.Execute(&buf, b.vars); err != nil {
-		return "", fmt.Errorf("failed to execute template: %w", err)
-	}
-	return buf.String(), nil
 }
