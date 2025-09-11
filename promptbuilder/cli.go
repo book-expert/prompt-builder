@@ -81,9 +81,8 @@ func RunCLI(args []string, output io.Writer) error {
 	}
 
 	// Create file processor with reasonable defaults
-	allowedExtensions := []string{
-		".go", ".py", ".js", ".ts", ".java", ".cpp", ".c", ".h", ".cs", ".php", ".rb", ".rs", ".txt", ".md",
-	}
+	allowedExtensions := []string{".png"}
+
 	fileProcessor := NewFileProcessor(1024*1024, allowedExtensions)
 
 	// Create prompt builder
