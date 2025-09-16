@@ -146,7 +146,7 @@ The application includes several security measures:
 This prompt-builder is designed to be easily integrated into larger AI helper projects. The internal package can be imported and used as a library:
 
 ```go
-import "github.com/nnikolov3/prompt-builder/internal/prompt-builder"
+import "github.com/book-expert/prompt-builder/promptbuilder"
 
 // Create a file processor with custom settings
 fileProcessor := promptbuilder.NewFileProcessor(

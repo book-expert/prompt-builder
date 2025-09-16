@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/nnikolov3/prompt-builder/promptbuilder"
+	"github.com/book-expert/prompt-builder/promptbuilder"
 )
 
 func main() {

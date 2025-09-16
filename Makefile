@@ -5,7 +5,7 @@
 BINARY_NAME=prompt-builder
 MAIN_PATH=./cmd/prompt-builder
 PACKAGE_PATH=./internal/prompt-builder
-MODULE_NAME=github.com/nnikolov3/prompt-builder
+MODULE_NAME=github.com/book-expert/prompt-builder
 BIN_DIR=$(HOME)/bin
 
 # Go build flags
