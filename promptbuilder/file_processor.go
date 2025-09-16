@@ -209,10 +209,12 @@ func (fp *FileProcessor) validatePathSecurity(absPath string) error {
 	if err != nil {
 		return fmt.Errorf("failed to get user home directory: %w", err)
 	}
+
 	cwd, err := os.Getwd()
 	if err != nil {
 		return fmt.Errorf("failed to get current working directory: %w", err)
 	}
+
 	tmpDir := os.TempDir() // Get the system's temp directory (usually /tmp)
 
 	// CHANGED: Check if the path is within any of the allowed base directories.

@@ -25,7 +25,9 @@ func (b *Builder) AddSystemPreset(name, message string) error {
 	if strings.TrimSpace(name) == "" {
 		return fmt.Errorf("preset name cannot be empty")
 	}
+
 	b.systemPresets[name] = message
+
 	return nil
 }
 
@@ -55,6 +57,7 @@ func (b *Builder) BuildPrompt(req *BuildRequest) (*BuildResult, error) {
 		if err != nil {
 			return nil, fmt.Errorf("failed to process file: %w", err)
 		}
+
 		prompt.FileContent = b.fileProcessor.FenceContent(fileContent.Content, fileContent.Path)
 	}
 
