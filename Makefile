@@ -78,6 +78,9 @@ lint: lint-golangci-lint lint-gofmt
 lint-golangci-lint:
 	@echo "Running golangci-lint..."
 	golangci-lint run --fix
+	@echo "Cleaning caches..."
+	@golangci-lint cache clean
+	@go clean -cache
 
 .PHONY: lint-gofmt
 lint-gofmt:
