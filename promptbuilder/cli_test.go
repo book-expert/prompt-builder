@@ -1,100 +1,183 @@
-package promptbuilder
+package promptbuilder_test
 
 import (
 	"bytes"
 	"encoding/base64"
 	"testing"
+
+	"github.com/book-expert/prompt-builder/promptbuilder"
 )
 
-func TestCLIFlags_Validate(t *testing.T) {
-	tests := []struct {
-		name    string
-		flags   CLIFlags
-		wantErr bool
-	}{
-		{
-			name: "valid flags with prompt only",
-			flags: CLIFlags{
-				Prompt: "test prompt",
-			},
-			wantErr: false,
-		},
-		{
-			name: "valid flags with prompt and file",
-			flags: CLIFlags{
-				Prompt: "test prompt",
-				File:   "test.go",
-			},
-			wantErr: false,
-		},
-		{
-			name: "empty prompt should fail",
-			flags: CLIFlags{
-				Prompt: "",
-			},
-			wantErr: true,
-		},
-		{
-			name: "whitespace-only prompt should fail",
-			flags: CLIFlags{
-				Prompt: "   \n\t  ",
-			},
-			wantErr: true,
-		},
-		{
-			name: "valid flags with task preset",
-			flags: CLIFlags{
-				Prompt: "test prompt",
-				Task:   "coding",
-			},
-			wantErr: false,
-		},
-		{
-			name: "valid flags with system message",
-			flags: CLIFlags{
-				Prompt:        "test prompt",
-				SystemMessage: "You are a helpful assistant",
-			},
-			wantErr: false,
-		},
-		{
-			name: "valid flags with guidelines",
-			flags: CLIFlags{
-				Prompt:     "test prompt",
-				Guidelines: "Follow best practices",
-			},
-			wantErr: false,
-		},
+const (
+	// sampleImageB64 is a very small 1x1 PNG used in tests.
+	sampleImageB64Part1 = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAA"
+	sampleImageB64Part2 = "AAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII="
+)
 
-		{
-			name: "valid flags with output format",
-			flags: CLIFlags{
-				Prompt:       "test prompt",
-				OutputFormat: "json",
-			},
-			wantErr: false,
-		},
-	}
+type validateCase struct {
+	name    string
+	flags   promptbuilder.CLIFlags
+	wantErr bool
+}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			err := tt.flags.Validate()
-			if (err != nil) != tt.wantErr {
-				t.Errorf("CLIFlags.Validate() error = %v, wantErr %v", err, tt.wantErr)
+func runFlagValidationSubtests(t *testing.T, cases []validateCase) {
+	t.Helper()
+
+	for _, item := range cases {
+		testCase := item
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			validateErr := testCase.flags.Validate()
+			if (validateErr != nil) != testCase.wantErr {
+				t.Errorf("CLIFlags.Validate() error = %v, wantErr %v", validateErr, testCase.wantErr)
 			}
 		})
 	}
 }
 
+// TestCLIFlagsValidateBasic tests basic validation scenarios.
+func TestCLIFlagsValidateBasic(t *testing.T) {
+	t.Parallel()
+
+	cases := []validateCase{
+		{
+			name: "valid flags with prompt only",
+			flags: promptbuilder.CLIFlags{
+				Prompt:        "test prompt",
+				File:          "",
+				Task:          "",
+				SystemMessage: "",
+				Guidelines:    "",
+				Image:         "",
+				OutputFormat:  "",
+			},
+			wantErr: false,
+		},
+		{
+			name: "valid flags with prompt and file",
+			flags: promptbuilder.CLIFlags{
+				Prompt:        "test prompt",
+				File:          "test.go",
+				Task:          "",
+				SystemMessage: "",
+				Guidelines:    "",
+				Image:         "",
+				OutputFormat:  "",
+			},
+			wantErr: false,
+		},
+	}
+	runFlagValidationSubtests(t, cases)
+}
+
+// TestCLIFlagsValidateEmptyPrompt tests validation of empty prompts.
+func TestCLIFlagsValidateEmptyPrompt(t *testing.T) {
+	t.Parallel()
+
+	cases := []validateCase{
+		{
+			name: "empty prompt should fail",
+			flags: promptbuilder.CLIFlags{
+				Prompt:        "",
+				File:          "",
+				Task:          "",
+				SystemMessage: "",
+				Guidelines:    "",
+				Image:         "",
+				OutputFormat:  "",
+			},
+			wantErr: true,
+		},
+		{
+			name: "whitespace-only prompt should fail",
+			flags: promptbuilder.CLIFlags{
+				Prompt:        "   \n\t  ",
+				File:          "",
+				Task:          "",
+				SystemMessage: "",
+				Guidelines:    "",
+				Image:         "",
+				OutputFormat:  "",
+			},
+			wantErr: true,
+		},
+	}
+	runFlagValidationSubtests(t, cases)
+}
+
+// TestCLIFlagsValidateWithPresets tests validation with presets and additional fields.
+func TestCLIFlagsValidateWithPresets(t *testing.T) {
+	t.Parallel()
+
+	cases := []validateCase{
+		{
+			name: "valid flags with task preset",
+			flags: promptbuilder.CLIFlags{
+				Prompt:        "test prompt",
+				File:          "",
+				Task:          "coding",
+				SystemMessage: "",
+				Guidelines:    "",
+				Image:         "",
+				OutputFormat:  "",
+			},
+			wantErr: false,
+		},
+		{
+			name: "valid flags with system message",
+			flags: promptbuilder.CLIFlags{
+				Prompt:        "test prompt",
+				File:          "",
+				Task:          "",
+				SystemMessage: "You are a helpful assistant",
+				Guidelines:    "",
+				Image:         "",
+				OutputFormat:  "",
+			},
+			wantErr: false,
+		},
+		{
+			name: "valid flags with guidelines",
+			flags: promptbuilder.CLIFlags{
+				Prompt:        "test prompt",
+				File:          "",
+				Task:          "",
+				SystemMessage: "",
+				Guidelines:    "Follow best practices",
+				Image:         "",
+				OutputFormat:  "",
+			},
+			wantErr: false,
+		},
+		{
+			name: "valid flags with output format",
+			flags: promptbuilder.CLIFlags{
+				Prompt:        "test prompt",
+				File:          "",
+				Task:          "",
+				SystemMessage: "",
+				Guidelines:    "",
+				Image:         "",
+				OutputFormat:  "json",
+			},
+			wantErr: false,
+		},
+	}
+	runFlagValidationSubtests(t, cases)
+}
+
 func TestCLIFlags_ToBuildRequest(t *testing.T) {
-	flags := CLIFlags{
+	t.Parallel()
+
+	flags := promptbuilder.CLIFlags{
 		Prompt:        "test prompt",
 		File:          "test.go",
 		Task:          "coding",
 		SystemMessage: "You are a helpful assistant",
 		Guidelines:    "Follow best practices",
 		OutputFormat:  "json",
-		Image:         "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=",
+		Image:         sampleImageB64Part1 + sampleImageB64Part2,
 	}
 
 	req, err := flags.ToBuildRequest()
@@ -137,66 +220,96 @@ func TestCLIFlags_ToBuildRequest(t *testing.T) {
 	}
 }
 
-func TestParseFlags(t *testing.T) {
+func TestParseFlags_Basic(t *testing.T) {
+	t.Parallel()
+
+	flags, parseErr := promptbuilder.ParseFlags([]string{"-p", "test prompt"})
+	if parseErr != nil {
+		t.Fatalf("ParseFlags() unexpected error = %v", parseErr)
+	}
+
+	if flags.Prompt != "test prompt" {
+		t.Errorf("Expected prompt %s, got %s", "test prompt", flags.Prompt)
+	}
+}
+
+func TestParseFlags_WithFile(t *testing.T) {
+	t.Parallel()
+
+	flags, parseErr := promptbuilder.ParseFlags([]string{"-p", "test prompt", "-f", "test.go"})
+	if parseErr != nil {
+		t.Fatalf("ParseFlags() unexpected error = %v", parseErr)
+	}
+
+	if flags.File != "test.go" {
+		t.Errorf("Expected file %s, got %s", "test.go", flags.File)
+	}
+}
+
+func TestParseFlags_WithTask(t *testing.T) {
+	t.Parallel()
+
+	flags, parseErr := promptbuilder.ParseFlags([]string{"-p", "test prompt", "-t", "coding"})
+	if parseErr != nil {
+		t.Fatalf("ParseFlags() unexpected error = %v", parseErr)
+	}
+
+	if flags.Task != "coding" {
+		t.Errorf("Expected task %s, got %s", "coding", flags.Task)
+	}
+}
+
+func TestParseFlags_WithSystemMessage(t *testing.T) {
+	t.Parallel()
+
+	sys := "You are a helpful assistant"
+
+	flags, parseErr := promptbuilder.ParseFlags([]string{"-p", "test prompt", "-sys", sys})
+	if parseErr != nil {
+		t.Fatalf("ParseFlags() unexpected error = %v", parseErr)
+	}
+
+	if flags.SystemMessage != sys {
+		t.Errorf("Expected system message %s, got %s", sys, flags.SystemMessage)
+	}
+}
+
+func TestParseFlags_WithGuidelines(t *testing.T) {
+	t.Parallel()
+
+	guide := "Follow best practices"
+
+	flags, parseErr := promptbuilder.ParseFlags([]string{"-p", "test prompt", "-g", guide})
+	if parseErr != nil {
+		t.Fatalf("ParseFlags() unexpected error = %v", parseErr)
+	}
+
+	if flags.Guidelines != guide {
+		t.Errorf("Expected guidelines %s, got %s", guide, flags.Guidelines)
+	}
+}
+
+func TestParseFlags_WithOutputFormat(t *testing.T) {
+	t.Parallel()
+
+	flags, parseErr := promptbuilder.ParseFlags([]string{"-p", "test prompt", "-o", "json"})
+	if parseErr != nil {
+		t.Fatalf("ParseFlags() unexpected error = %v", parseErr)
+	}
+
+	if flags.OutputFormat != "json" {
+		t.Errorf("Expected output format %s, got %s", "json", flags.OutputFormat)
+	}
+}
+
+func TestParseFlags_Errors(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name    string
 		args    []string
-		want    CLIFlags
 		wantErr bool
 	}{
-		{
-			name: "basic prompt",
-			args: []string{"-p", "test prompt"},
-			want: CLIFlags{
-				Prompt: "test prompt",
-			},
-			wantErr: false,
-		},
-		{
-			name: "prompt with file",
-			args: []string{"-p", "test prompt", "-f", "test.go"},
-			want: CLIFlags{
-				Prompt: "test prompt",
-				File:   "test.go",
-			},
-			wantErr: false,
-		},
-		{
-			name: "prompt with task",
-			args: []string{"-p", "test prompt", "-t", "coding"},
-			want: CLIFlags{
-				Prompt: "test prompt",
-				Task:   "coding",
-			},
-			wantErr: false,
-		},
-		{
-			name: "prompt with system message",
-			args: []string{"-p", "test prompt", "-sys", "You are a helpful assistant"},
-			want: CLIFlags{
-				Prompt:        "test prompt",
-				SystemMessage: "You are a helpful assistant",
-			},
-			wantErr: false,
-		},
-		{
-			name: "prompt with guidelines",
-			args: []string{"-p", "test prompt", "-g", "Follow best practices"},
-			want: CLIFlags{
-				Prompt:     "test prompt",
-				Guidelines: "Follow best practices",
-			},
-			wantErr: false,
-		},
-		{
-			name: "prompt with output format",
-			args: []string{"-p", "test prompt", "-o", "json"},
-			want: CLIFlags{
-				Prompt:       "test prompt",
-				OutputFormat: "json",
-			},
-			wantErr: false,
-		},
 		{
 			name:    "missing prompt should fail",
 			args:    []string{"-f", "test.go"},
@@ -209,53 +322,22 @@ func TestParseFlags(t *testing.T) {
 		},
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			flags, err := ParseFlags(tt.args)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("ParseFlags() error = %v, wantErr %v", err, tt.wantErr)
+	for _, item := range tests {
+		testCase := item
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
 
-				return
-			}
-
-			if !tt.wantErr {
-				if flags.Prompt != tt.want.Prompt {
-					t.Errorf("Expected prompt %s, got %s", tt.want.Prompt, flags.Prompt)
-				}
-
-				if flags.File != tt.want.File {
-					t.Errorf("Expected file %s, got %s", tt.want.File, flags.File)
-				}
-
-				if flags.Task != tt.want.Task {
-					t.Errorf("Expected task %s, got %s", tt.want.Task, flags.Task)
-				}
-
-				if flags.SystemMessage != tt.want.SystemMessage {
-					t.Errorf(
-						"Expected system message %s, got %s",
-						tt.want.SystemMessage,
-						flags.SystemMessage,
-					)
-				}
-
-				if flags.Guidelines != tt.want.Guidelines {
-					t.Errorf("Expected guidelines %s, got %s", tt.want.Guidelines, flags.Guidelines)
-				}
-
-				if flags.OutputFormat != tt.want.OutputFormat {
-					t.Errorf(
-						"Expected output format %s, got %s",
-						tt.want.OutputFormat,
-						flags.OutputFormat,
-					)
-				}
+			_, err := promptbuilder.ParseFlags(testCase.args)
+			if (err != nil) != testCase.wantErr {
+				t.Errorf("ParseFlags() error = %v, wantErr %v", err, testCase.wantErr)
 			}
 		})
 	}
 }
 
 func TestRunCLI(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name    string
 		args    []string
@@ -268,7 +350,7 @@ func TestRunCLI(t *testing.T) {
 		},
 		{
 			name:    "prompt with image",
-			args:    []string{"-p", "Explain this image", "-img", "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII="},
+			args:    []string{"-p", "Explain this image", "-img", sampleImageB64Part1 + sampleImageB64Part2},
 			wantErr: false,
 		},
 		{
@@ -278,23 +360,25 @@ func TestRunCLI(t *testing.T) {
 		},
 		{
 			name:    "missing prompt should fail",
-			args:    []string{"-img", "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII="},
+			args:    []string{"-img", sampleImageB64Part1 + sampleImageB64Part2},
 			wantErr: true,
 		},
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+	for _, testCase := range tests {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
 			var buf bytes.Buffer
 
-			err := RunCLI(tt.args, &buf)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("RunCLI() error = %v, wantErr %v", err, tt.wantErr)
+			err := promptbuilder.RunCLI(testCase.args, &buf)
+			if (err != nil) != testCase.wantErr {
+				t.Errorf("RunCLI() error = %v, wantErr %v", err, testCase.wantErr)
 
 				return
 			}
 
-			if !tt.wantErr && buf.Len() == 0 {
+			if !testCase.wantErr && buf.Len() == 0 {
 				t.Error("Expected output, got empty buffer")
 			}
 		})
