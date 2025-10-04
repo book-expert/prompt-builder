@@ -1,7 +1,9 @@
 package promptbuilder
 
 import (
+	"encoding/base64"
 	"errors"
+	"fmt"
 	"strings"
 )
 
@@ -19,7 +21,7 @@ type BuildRequest struct {
 	Task          string `json:"task,omitempty"`
 	SystemMessage string `json:"systemMessage,omitempty"`
 	Guidelines    string `json:"guidelines,omitempty"`
-	Image         string `json:"image,omitempty"`
+	Image         []byte `json:"image,omitempty"`
 	OutputFormat  string `json:"outputFormat,omitempty"`
 }
 
@@ -100,6 +102,7 @@ type CLIFlags struct {
 	Task          string `json:"task,omitempty"`
 	SystemMessage string `json:"systemMessage,omitempty"`
 	Guidelines    string `json:"guidelines,omitempty"`
+	Image         string `json:"image,omitempty"`
 	OutputFormat  string `json:"outputFormat,omitempty"`
 }
 
@@ -113,14 +116,25 @@ func (f *CLIFlags) Validate() error {
 }
 
 // ToBuildRequest converts CLI flags to a BuildRequest.
-func (f *CLIFlags) ToBuildRequest() *BuildRequest {
+func (f *CLIFlags) ToBuildRequest() (*BuildRequest, error) {
+	var imageData []byte
+
+	if f.Image != "" {
+		decoded, err := base64.StdEncoding.DecodeString(f.Image)
+		if err != nil {
+			return nil, fmt.Errorf("failed to decode image: %w", err)
+		}
+
+		imageData = decoded
+	}
+
 	return &BuildRequest{
 		Prompt:        f.Prompt,
 		File:          f.File,
 		Task:          f.Task,
 		SystemMessage: f.SystemMessage,
 		Guidelines:    f.Guidelines,
-		Image:         "",
+		Image:         imageData,
 		OutputFormat:  f.OutputFormat,
-	}
+	}, nil
 }

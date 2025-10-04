@@ -2,7 +2,7 @@ package promptbuilder
 
 import (
 	"bytes"
-	"os"
+	"encoding/base64"
 	"testing"
 )
 
@@ -94,9 +94,13 @@ func TestCLIFlags_ToBuildRequest(t *testing.T) {
 		SystemMessage: "You are a helpful assistant",
 		Guidelines:    "Follow best practices",
 		OutputFormat:  "json",
+		Image:         "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=",
 	}
 
-	req := flags.ToBuildRequest()
+	req, err := flags.ToBuildRequest()
+	if err != nil {
+		t.Fatalf("Failed to convert flags to build request: %v", err)
+	}
 
 	if req.Prompt != flags.Prompt {
 		t.Errorf("Expected prompt %s, got %s", flags.Prompt, req.Prompt)
@@ -120,6 +124,16 @@ func TestCLIFlags_ToBuildRequest(t *testing.T) {
 
 	if req.OutputFormat != flags.OutputFormat {
 		t.Errorf("Expected output format %s, got %s", flags.OutputFormat, req.OutputFormat)
+	}
+
+	// Check image data
+	decodedImage, err := base64.StdEncoding.DecodeString(flags.Image)
+	if err != nil {
+		t.Fatalf("Failed to decode image: %v", err)
+	}
+
+	if !bytes.Equal(req.Image, decodedImage) {
+		t.Errorf("Expected image data %v, got %v", decodedImage, req.Image)
 	}
 }
 
@@ -242,38 +256,6 @@ func TestParseFlags(t *testing.T) {
 }
 
 func TestRunCLI(t *testing.T) {
-	// Create a temporary test file in current working directory
-	cwd, err := os.Getwd()
-	if err != nil {
-		t.Fatalf("Failed to get current working directory: %v", err)
-	}
-
-	tmpFile, err := os.CreateTemp(cwd, "test_*.go")
-	if err != nil {
-		t.Fatalf("Failed to create temp file: %v", err)
-	}
-
-	defer func() {
-		err := os.Remove(tmpFile.Name())
-		if err != nil {
-			t.Logf("Failed to remove temp file: %v", err)
-		}
-	}()
-
-	// Write some test content
-	testContent := `package main
-
-func main() {
-    fmt.Println("Hello, World!")
-}`
-	if _, err := tmpFile.WriteString(testContent); err != nil {
-		t.Fatalf("Failed to write test content: %v", err)
-	}
-
-	if err := tmpFile.Close(); err != nil {
-		t.Fatalf("Failed to close temp file: %v", err)
-	}
-
 	tests := []struct {
 		name    string
 		args    []string
@@ -285,8 +267,8 @@ func main() {
 			wantErr: false,
 		},
 		{
-			name:    "prompt with file",
-			args:    []string{"-p", "Explain this code", "-f", tmpFile.Name()},
+			name:    "prompt with image",
+			args:    []string{"-p", "Explain this image", "-img", "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII="},
 			wantErr: false,
 		},
 		{
@@ -296,7 +278,7 @@ func main() {
 		},
 		{
 			name:    "missing prompt should fail",
-			args:    []string{"-f", tmpFile.Name()},
+			args:    []string{"-img", "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII="},
 			wantErr: true,
 		},
 	}

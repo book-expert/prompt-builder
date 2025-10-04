@@ -26,6 +26,8 @@ func ParseFlags(args []string) (*CLIFlags, error) {
 	flagSet.StringVar(&flags.Guidelines, "guidelines", "", "Guidelines to follow")
 	flagSet.StringVar(&flags.OutputFormat, "o", "", "Output format (json, text, markdown)")
 	flagSet.StringVar(&flags.OutputFormat, "output", "", "Output format (json, text, markdown)")
+	flagSet.StringVar(&flags.Image, "img", "", "Base64 encoded image data")
+	flagSet.StringVar(&flags.Image, "image", "", "Base64 encoded image data")
 
 	// Parse the flags
 	err := flagSet.Parse(args)
@@ -54,6 +56,7 @@ OPTIONS:
   -sys, --system TEXT       Custom system message
   -g, --guidelines TEXT     Guidelines to follow
   -o, --output FORMAT       Output format (json, text, markdown)
+  -img, --image BASE64      Base64 encoded image data
   -h, --help                Show this help message
 
 EXAMPLES:
@@ -105,7 +108,10 @@ func RunCLI(args []string, output io.Writer) error {
 	}
 
 	// Convert flags to build request
-	req := flags.ToBuildRequest()
+	req, err := flags.ToBuildRequest()
+	if err != nil {
+		return fmt.Errorf("failed to convert flags to build request: %w", err)
+	}
 
 	// Build the prompt
 	result, err := builder.BuildPrompt(req)

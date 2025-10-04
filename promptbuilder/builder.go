@@ -2,6 +2,7 @@
 package promptbuilder
 
 import (
+	"encoding/base64"
 	"fmt"
 	"strings"
 )
@@ -59,6 +60,10 @@ func (b *Builder) BuildPrompt(req *BuildRequest) (*BuildResult, error) {
 		}
 
 		prompt.FileContent = b.fileProcessor.FenceContent(fileContent.Content, fileContent.Path)
+	} else if len(req.Image) > 0 {
+		// Assuming image is PNG for now, as per png-to-text-service context
+		encodedImage := base64.StdEncoding.EncodeToString(req.Image)
+		prompt.FileContent = b.fileProcessor.FenceContent([]byte(fmt.Sprintf("data:image/png;base64,%s", encodedImage)), "image.png")
 	}
 
 	return &BuildResult{
