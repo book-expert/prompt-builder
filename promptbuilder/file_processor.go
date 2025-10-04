@@ -8,13 +8,14 @@ import (
 	"strings"
 )
 
-// Static errors for validation
+// ErrFileExtensionRequired is returned when a file path doesn't have an extension.
 var (
-	ErrFileExtensionRequired = errors.New("file must have an extension")
-	ErrFileTooLarge          = errors.New("file is too large")
-	ErrSuspiciousPath        = errors.New("file path contains suspicious pattern")
-	ErrPathOutsideAllowed    = errors.New("file path is outside allowed directories")
-	ErrPathIsDirectory       = errors.New("path is a directory, not a file")
+	ErrFileExtensionRequired   = errors.New("file must have an extension")
+	ErrFileTooLarge            = errors.New("file is too large")
+	ErrSuspiciousPath          = errors.New("file path contains suspicious pattern")
+	ErrPathOutsideAllowed      = errors.New("file path is outside allowed directories")
+	ErrPathIsDirectory         = errors.New("path is a directory, not a file")
+	ErrFileExtensionNotAllowed = errors.New("file extension is not allowed") // Add this line
 )
 
 // FileProcessor handles file operations for prompt building.
@@ -34,7 +35,8 @@ func NewFileProcessor(maxFileSize int64, allowedExtensions []string) *FileProces
 // ProcessFile reads and validates a file, returning its content.
 func (fp *FileProcessor) ProcessFile(path string) (*FileContent, error) {
 	// Validate file path and extension
-	if err := fp.ValidateFile(path); err != nil {
+	err := fp.ValidateFile(path)
+	if err != nil {
 		return nil, fmt.Errorf("file validation failed: %w", err)
 	}
 
@@ -45,7 +47,8 @@ func (fp *FileProcessor) ProcessFile(path string) (*FileContent, error) {
 	}
 
 	// Additional security validation: ensure the path doesn't contain path traversal
-	if err := fp.validatePathSecurity(absPath); err != nil {
+	err = fp.validatePathSecurity(absPath)
+	if err != nil {
 		return nil, fmt.Errorf("security validation failed for %s: %w", absPath, err)
 	}
 
@@ -123,7 +126,8 @@ func (fp *FileProcessor) ValidateFile(path string) error {
 	}
 
 	if !allowed {
-		return fmt.Errorf("file extension %s is not allowed. Allowed extensions: %v",
+		return fmt.Errorf("%w: file extension %s is not allowed. Allowed extensions: %v",
+			ErrFileExtensionNotAllowed, // Use the static error
 			ext, fp.allowedExtensions)
 	}
 

@@ -9,7 +9,8 @@ import (
 )
 
 func main() {
-	if err := promptbuilder.RunCLI(os.Args[1:], os.Stdout); err != nil {
+	err := promptbuilder.RunCLI(os.Args[1:], os.Stdout)
+	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 		os.Exit(1)
 	}

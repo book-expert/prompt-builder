@@ -7,7 +7,7 @@ import (
 	"strings"
 )
 
-// Static errors for validation
+// Static errors for validation.
 var (
 	ErrPromptRequired      = errors.New("prompt is required")
 	ErrFilePathRequired    = errors.New("file path is required")

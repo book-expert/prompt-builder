@@ -8,6 +8,10 @@ import (
 	"log"
 )
 
+const (
+	defaultMaxFileSize = 1024 * 1024 // 1MB default max file size
+)
+
 // ParseFlags parses command line arguments into CLIFlags.
 func ParseFlags(args []string) (*CLIFlags, error) {
 	flagSet := flag.NewFlagSet("prompt-builder", flag.ExitOnError)
@@ -36,7 +40,8 @@ func ParseFlags(args []string) (*CLIFlags, error) {
 	}
 
 	// Validate the flags
-	if err := flags.Validate(); err != nil {
+	err = flags.Validate()
+	if err != nil {
 		return nil, fmt.Errorf("invalid flags: %w", err)
 	}
 
@@ -86,24 +91,30 @@ func RunCLI(args []string, output io.Writer) error {
 	// Create file processor with reasonable defaults
 	allowedExtensions := []string{".png"}
 
-	fileProcessor := NewFileProcessor(1024*1024, allowedExtensions)
+	fileProcessor := NewFileProcessor(defaultMaxFileSize, allowedExtensions)
 
 	// Create prompt builder
 	builder := New(fileProcessor)
 
 	// Add some default system presets
 	codingPreset := "You are an expert software developer. Write clean, efficient, and well-documented code."
-	if err := builder.AddSystemPreset("coding", codingPreset); err != nil {
+
+	err = builder.AddSystemPreset("coding", codingPreset)
+	if err != nil {
 		return fmt.Errorf("failed to add coding preset: %w", err)
 	}
 
 	analysisPreset := "You are an expert code analyst. Provide detailed analysis and insights."
-	if err := builder.AddSystemPreset("analysis", analysisPreset); err != nil {
+
+	err = builder.AddSystemPreset("analysis", analysisPreset)
+	if err != nil {
 		return fmt.Errorf("failed to add analysis preset: %w", err)
 	}
 
 	documentationPreset := "You are an expert technical writer. Create clear and comprehensive documentation."
-	if err := builder.AddSystemPreset("documentation", documentationPreset); err != nil {
+
+	err = builder.AddSystemPreset("documentation", documentationPreset)
+	if err != nil {
 		return fmt.Errorf("failed to add documentation preset: %w", err)
 	}
 
@@ -119,15 +130,20 @@ func RunCLI(args []string, output io.Writer) error {
 		return fmt.Errorf("failed to build prompt: %w", err)
 	}
 
-	// Format and output the result
-	switch flags.OutputFormat {
+	return formatAndWriteOutput(output, flags.OutputFormat, result.Prompt)
+}
+
+// formatAndWriteOutput formats the prompt and writes it to the output writer.
+func formatAndWriteOutput(output io.Writer, format string, prompt *Prompt) error {
+	var err error // Declare err here
+
+	switch format {
 	case "json":
-		// Output as JSON
 		jsonData := map[string]any{
-			"system_message": result.Prompt.SystemMessage,
-			"user_prompt":    result.Prompt.UserPrompt,
-			"file_content":   result.Prompt.FileContent,
-			"guidelines":     result.Prompt.Guidelines,
+			"system_message": prompt.SystemMessage,
+			"user_prompt":    prompt.UserPrompt,
+			"file_content":   prompt.FileContent,
+			"guidelines":     prompt.Guidelines,
 		}
 
 		jsonBytes, err := json.MarshalIndent(jsonData, "", "  ")
@@ -135,23 +151,23 @@ func RunCLI(args []string, output io.Writer) error {
 			return fmt.Errorf("failed to marshal JSON: %w", err)
 		}
 
-		_, err = fmt.Fprintf(output, "%s\n", jsonBytes)
+		_, err = fmt.Fprintf(output, "%s\\n", jsonBytes)
 		if err != nil {
 			return fmt.Errorf("failed to write JSON output: %w", err)
 		}
 	case "text":
-		_, err = fmt.Fprintf(output, "%s\n", result.Prompt.String())
+		_, err = fmt.Fprintf(output, "%s\\n", prompt.String())
 		if err != nil {
 			return fmt.Errorf("failed to write text output: %w", err)
 		}
 	default:
 		// Default to markdown format
-		_, err = fmt.Fprintf(output, "# Generated Prompt\n\n")
+		_, err = fmt.Fprintf(output, "# Generated Prompt\\n\\n")
 		if err != nil {
 			return fmt.Errorf("failed to write markdown header: %w", err)
 		}
 
-		_, err = fmt.Fprintf(output, "```\n%s\n```\n", result.Prompt.String())
+		_, err = fmt.Fprintf(output, "```\\n%s\\n```\\n", prompt.String())
 		if err != nil {
 			return fmt.Errorf("failed to write markdown content: %w", err)
 		}

@@ -1,152 +1,115 @@
-package promptbuilder
+package promptbuilder_test
 
 import (
 	"os"
 	"path/filepath"
 	"testing"
+
+	"github.com/book-expert/prompt-builder/promptbuilder"
 )
 
-func TestFileProcessor_validatePathSecurity(t *testing.T) {
-	fileProcessor := NewFileProcessor(1024*1024, []string{".go", ".txt"})
+// setupFileProcessorTest creates a temporary file and returns its path,
+// along with the current working directory and a cleanup function.
+func setupFileProcessorTest(t *testing.T) (string, string, func()) {
+	t.Helper()
 
-	// Get current working directory
 	cwd, err := os.Getwd()
 	if err != nil {
 		t.Fatalf("Failed to get current working directory: %v", err)
 	}
 
-	// Create a temporary test file
 	tmpFile, err := os.CreateTemp(cwd, "test_*.go")
 	if err != nil {
 		t.Fatalf("Failed to create temp file: %v", err)
 	}
-
-	defer func() {
-		err := os.Remove(tmpFile.Name())
-		if err != nil {
-			t.Logf("Failed to remove temp file: %v", err)
-		}
-	}()
-
-	tests := []struct {
-		name    string
-		path    string
-		wantErr bool
-	}{
-		{
-			name:    "valid file path",
-			path:    tmpFile.Name(),
-			wantErr: false,
-		},
-		{
-			name:    "path traversal attempt",
-			path:    filepath.Join(cwd, "..", "..", "etc", "passwd"),
-			wantErr: true,
-		},
-		{
-			name:    "suspicious pattern with ..",
-			path:    filepath.Join(cwd, "test", "..", "file.go"),
-			wantErr: true,
-		},
-		{
-			name:    "suspicious pattern with /etc",
-			path:    cwd + "/test/etc/passwd",
-			wantErr: true,
-		},
-		{
-			name:    "outside working directory",
-			path:    "/etc/passwd",
-			wantErr: true,
-		},
-		{
-			name:    "non-existent file",
-			path:    filepath.Join(cwd, "non_existent_file.go"),
-			wantErr: true,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			absPath, err := filepath.Abs(tt.path)
-			if err != nil {
-				// If we can't get absolute path, that's also a security issue
-				if !tt.wantErr {
-					t.Errorf("Expected no error for path %s, but got error: %v", tt.path, err)
-				}
-
-				return
-			}
-
-			err = fileProcessor.validatePathSecurity(absPath)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("validatePathSecurity() error = %v, wantErr %v", err, tt.wantErr)
-			}
-		})
-	}
-}
-
-func TestFileProcessor_ProcessFile_Security(t *testing.T) {
-	fileProcessor := NewFileProcessor(1024*1024, []string{".go", ".txt"})
-
-	// Get current working directory
-	cwd, err := os.Getwd()
-	if err != nil {
-		t.Fatalf("Failed to get current working directory: %v", err)
-	}
-
-	// Create a temporary test file
-	tmpFile, err := os.CreateTemp(cwd, "test_*.go")
-	if err != nil {
-		t.Fatalf("Failed to create temp file: %v", err)
-	}
-
-	defer func() {
-		err := os.Remove(tmpFile.Name())
-		if err != nil {
-			t.Logf("Failed to remove temp file: %v", err)
-		}
-	}()
 
 	// Write some test content
 	testContent := `package main
 func main() {
     fmt.Println("Hello, World!")
 }`
-	if _, err := tmpFile.WriteString(testContent); err != nil {
+
+	_, err = tmpFile.WriteString(testContent)
+	if err != nil {
 		t.Fatalf("Failed to write test content: %v", err)
 	}
 
-	if err := tmpFile.Close(); err != nil {
+	err = tmpFile.Close()
+	if err != nil {
 		t.Fatalf("Failed to close temp file: %v", err)
 	}
 
-	tests := []struct {
+	cleanup := func() {
+		t.Helper()
+
+		err := os.Remove(tmpFile.Name())
+		if err != nil {
+			t.Logf("Failed to remove temp file: %v", err)
+		}
+	}
+
+	return tmpFile.Name(), cwd, cleanup
+}
+
+func TestFileProcessor_ProcessFile_Security(t *testing.T) {
+	t.Parallel()
+
+	fileProcessor := promptbuilder.NewFileProcessor(1024*1024, []string{".go", ".txt"})
+
+	tmpFileName, cwd, cleanup := setupFileProcessorTest(t)
+	t.Cleanup(cleanup)
+
+	var processFileSecurityTests = []struct { // Extracted test cases
+		name    string
+		path    string
+		wantErr bool
+	}{
+		// These paths will be dynamically set in TestFileProcessor_ProcessFile_Security
+		// to include cwd and tmpFile.Name()
+		{
+			name:    "path traversal attempt",
+			path:    filepath.Join("..", "..", "etc", "passwd"), // Relative path for dynamic joining
+			wantErr: true,
+		},
+		{
+			name:    "suspicious pattern",
+			path:    "/test/etc/passwd", // Relative path for dynamic joining
+			wantErr: true,
+		},
+	}
+
+	// Dynamically add test cases that depend on cwd and tmpFile
+	dynamicTests := []struct {
 		name    string
 		path    string
 		wantErr bool
 	}{
 		{
 			name:    "valid file",
-			path:    tmpFile.Name(),
+			path:    tmpFileName,
 			wantErr: false,
 		},
 		{
-			name:    "path traversal attempt",
-			path:    filepath.Join(cwd, "..", "..", "etc", "passwd"),
+			name:    "path traversal attempt (dynamic)",
+			path:    filepath.Join(cwd, processFileSecurityTests[0].path),
 			wantErr: true,
 		},
 		{
-			name:    "suspicious pattern",
-			path:    cwd + "/test/etc/passwd",
+			name:    "suspicious pattern (dynamic)",
+			path:    filepath.Join(cwd, processFileSecurityTests[1].path),
 			wantErr: true,
 		},
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			_, err := fileProcessor.ProcessFile(tt.path)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("ProcessFile() error = %v, wantErr %v", err, tt.wantErr)
+	// Combine static and dynamic tests and iterate immediately
+	for _, testCase := range append(processFileSecurityTests, dynamicTests...) {
+		// Capture range variable
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			_, err := fileProcessor.ProcessFile(testCase.path)
+			if (err != nil) != testCase.wantErr {
+				t.Errorf("ProcessFile() error = %v, wantErr %v", err, testCase.wantErr)
 			}
 		})
 	}

@@ -1,62 +1,128 @@
-package promptbuilder
+package promptbuilder_test
 
 import (
 	"testing"
+
+	"github.com/book-expert/prompt-builder/promptbuilder"
 )
 
-func TestBuildRequest_Validate(t *testing.T) {
-	tests := []struct {
+// buildRequestValidationTests returns common test cases for BuildRequest validation.
+func buildRequestValidationTests() []struct {
+	name    string
+	req     promptbuilder.BuildRequest
+	wantErr bool
+} {
+	return []struct {
 		name    string
-		req     BuildRequest
+		req     promptbuilder.BuildRequest
 		wantErr bool
 	}{
 		{
 			name: "valid request with prompt",
-			req: BuildRequest{
-				Prompt: "test prompt",
+			req: promptbuilder.BuildRequest{
+				Prompt:        "test prompt",
+				File:          "",
+				Task:          "",
+				SystemMessage: "",
+				Guidelines:    "",
+				Image:         nil,
+				OutputFormat:  "",
 			},
 			wantErr: false,
 		},
 		{
 			name: "empty prompt should fail",
-			req: BuildRequest{
-				Prompt: "",
+			req: promptbuilder.BuildRequest{
+				Prompt:        "",
+				File:          "",
+				Task:          "",
+				SystemMessage: "",
+				Guidelines:    "",
+				Image:         nil,
+				OutputFormat:  "",
 			},
 			wantErr: true,
 		},
-		{
-			name: "valid request with file",
-			req: BuildRequest{
-				Prompt: "test prompt",
-				File:   "test.go",
-			},
-			wantErr: false,
-		},
-		{
-			name: "valid request with task",
-			req: BuildRequest{
-				Prompt: "test prompt",
-				Task:   "coding",
-			},
-			wantErr: false,
-		},
 	}
+}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			err := tt.req.Validate()
-			if (err != nil) != tt.wantErr {
-				t.Errorf("BuildRequest.Validate() error = %v, wantErr %v", err, tt.wantErr)
+// TestBuildRequestValidateBasic tests basic validation scenarios.
+func TestBuildRequestValidateBasic(t *testing.T) {
+	t.Parallel()
+
+	tests := buildRequestValidationTests()
+
+	for _, testCase := range tests {
+		// Capture range variable
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			err := testCase.req.Validate()
+			if (err != nil) != testCase.wantErr {
+				t.Errorf("BuildRequest.Validate() error = %v, wantErr %v", err, testCase.wantErr)
 			}
 		})
 	}
 }
 
-func TestPrompt_String(t *testing.T) {
-	prompt := Prompt{
-		SystemMessage: "You are a helpful assistant",
-		UserPrompt:    "Explain this code",
-		FileContent:   "func main() { }",
+// TestBuildRequestValidateWithComponents tests validation with various components.
+func TestBuildRequestValidateWithComponents(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct { // Extracted test cases
+		name    string
+		req     promptbuilder.BuildRequest
+		wantErr bool
+	}{
+		{
+			name: "valid request with prompt and file",
+			req: promptbuilder.BuildRequest{
+				Prompt:        "test prompt",
+				File:          "test.go",
+				Task:          "",
+				SystemMessage: "",
+				Guidelines:    "",
+				Image:         nil,
+				OutputFormat:  "",
+			},
+			wantErr: false,
+		},
+		{
+			name: "valid request with task",
+			req: promptbuilder.BuildRequest{
+				Prompt:        "test prompt",
+				File:          "",
+				Task:          "coding",
+				SystemMessage: "",
+				Guidelines:    "",
+				Image:         nil,
+				OutputFormat:  "",
+			},
+			wantErr: false,
+		},
+	}
+
+	for _, testCase := range tests {
+		// Capture range variable
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			err := testCase.req.Validate()
+			if (err != nil) != testCase.wantErr {
+				t.Errorf("BuildRequest.Validate() error = %v, wantErr %v", err, testCase.wantErr)
+			}
+		})
+	}
+}
+// TestPromptString tests the String method of the Prompt struct.
+func TestPromptString(t *testing.T) {
+	t.Parallel()
+
+	prompt := promptbuilder.Prompt{
+		SystemMessage: "System message.",
+		UserPrompt:    "User prompt.",
+		FileContent:   "File content.",
+		Guidelines:    "Guidelines.",
 	}
 
 	result := prompt.String()
@@ -66,56 +132,64 @@ func TestPrompt_String(t *testing.T) {
 	}
 
 	// Should contain all components
-	if !contains(result, "You are a helpful assistant") {
+	if !contains(result, "System message.") {
 		t.Error("Expected system message in prompt")
 	}
 
-	if !contains(result, "Explain this code") {
+	if !contains(result, "User prompt.") {
 		t.Error("Expected user prompt in prompt")
 	}
 
-	if !contains(result, "func main() { }") {
+	if !contains(result, "File content.") {
 		t.Error("Expected file content in prompt")
 	}
 }
 
-func TestFileContent_Validate(t *testing.T) {
+func TestFileContentValidate(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name    string
-		content FileContent
+		content promptbuilder.FileContent
 		wantErr bool
 	}{
 		{
 			name: "valid file content",
-			content: FileContent{
-				Path:    "test.go",
-				Content: []byte("func main() { }"),
+			content: promptbuilder.FileContent{
+				Path:    "test.txt",
+				Content: []byte("hello"),
+				Size:    5,
 			},
 			wantErr: false,
 		},
 		{
 			name: "empty path should fail",
-			content: FileContent{
+			content: promptbuilder.FileContent{
 				Path:    "",
-				Content: []byte("content"),
+				Content: []byte("hello"),
+				Size:    0,
 			},
 			wantErr: true,
 		},
 		{
 			name: "empty content should fail",
-			content: FileContent{
-				Path:    "test.go",
+			content: promptbuilder.FileContent{
+				Path:    "test.txt",
 				Content: []byte{},
+				Size:    0,
 			},
 			wantErr: true,
 		},
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			err := tt.content.Validate()
-			if (err != nil) != tt.wantErr {
-				t.Errorf("FileContent.Validate() error = %v, wantErr %v", err, tt.wantErr)
+	for _, testCase := range tests {
+		// Capture range variable
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			err := testCase.content.Validate()
+			if (err != nil) != testCase.wantErr {
+				t.Errorf("FileContent.Validate() error = %v, wantErr %v", err, testCase.wantErr)
 			}
 		})
 	}

@@ -1,10 +1,17 @@
-// ./promptbuilder/builder.go
+// Package promptbuilder provides functionality for building prompts from various components
+// including files, system messages, and guidelines.
 package promptbuilder
 
 import (
 	"encoding/base64"
+	"errors"
 	"fmt"
 	"strings"
+)
+
+// ErrPresetNameEmpty is returned when trying to add a system preset with an empty name.
+var (
+	ErrPresetNameEmpty = errors.New("preset name cannot be empty")
 )
 
 // Builder is the main engine for constructing prompts.
@@ -24,7 +31,7 @@ func New(fp *FileProcessor) *Builder {
 // AddSystemPreset adds a named system message preset to the builder.
 func (b *Builder) AddSystemPreset(name, message string) error {
 	if strings.TrimSpace(name) == "" {
-		return fmt.Errorf("preset name cannot be empty")
+		return ErrPresetNameEmpty // Use the static error
 	}
 
 	b.systemPresets[name] = message
@@ -34,13 +41,16 @@ func (b *Builder) AddSystemPreset(name, message string) error {
 
 // BuildPrompt constructs a prompt from a BuildRequest.
 func (b *Builder) BuildPrompt(req *BuildRequest) (*BuildResult, error) {
-	if err := req.Validate(); err != nil {
+	err := req.Validate()
+	if err != nil {
 		return nil, fmt.Errorf("invalid build request: %w", err)
 	}
 
 	prompt := &Prompt{
-		UserPrompt: req.Prompt,
-		Guidelines: req.Guidelines,
+		UserPrompt:    req.Prompt,
+		Guidelines:    req.Guidelines,
+		SystemMessage: "", // Initialize SystemMessage
+		FileContent:   "", // Initialize FileContent
 	}
 
 	// Handle the system message logic
@@ -63,7 +73,7 @@ func (b *Builder) BuildPrompt(req *BuildRequest) (*BuildResult, error) {
 	} else if len(req.Image) > 0 {
 		// Assuming image is PNG for now, as per png-to-text-service context
 		encodedImage := base64.StdEncoding.EncodeToString(req.Image)
-		prompt.FileContent = b.fileProcessor.FenceContent([]byte(fmt.Sprintf("data:image/png;base64,%s", encodedImage)), "image.png")
+		prompt.FileContent = b.fileProcessor.FenceContent([]byte("data:image/png;base64,"+encodedImage), "image.png")
 	}
 
 	return &BuildResult{
