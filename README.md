@@ -104,6 +104,32 @@ To run the tests for this library, you can use the `make test` command:
 make test
 ```
 
+### Architecture Diagram
+
+```mermaid
+graph TD
+    A[Prompt Builder] --> B[Prompt Construction]
+    A --> C[File Processing]
+    A --> D[System Presets]
+    B --> E[User Prompt]
+    B --> F[Guidelines]
+    C --> G[File Content Integration]
+    C --> H[Code Fencing]
+    D --> I[Task Presets]
+    D --> J[Custom System Messages]
+    
+    style A fill:#cde4ff,stroke:#6495ED,stroke-width:2px
+    style B fill:#f9f,stroke:#333,stroke-width:2px
+    style C fill:#fbf,stroke:#333,stroke-width:2px
+    style D fill:#bbf,stroke:#333,stroke-width:2px
+    style E fill:#ddf,stroke:#333,stroke-width:2px
+    style F fill:#ddf,stroke:#333,stroke-width:2px
+    style G fill:#ddf,stroke:#333,stroke-width:2px
+    style H fill:#ddf,stroke:#333,stroke-width:2px
+    style I fill:#ddf,stroke:#333,stroke-width:2px
+    style J fill:#ddf,stroke:#333,stroke-width:2px
+```
+
 ## License
 
 Distributed under the MIT License. See the `LICENSE` file for more information.
