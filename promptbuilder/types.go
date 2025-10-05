@@ -14,7 +14,8 @@ var (
 	ErrFileContentRequired = errors.New("file content is required")
 )
 
-// BuildRequest represents a request to build a prompt.
+// BuildRequest represents a request to build a prompt. This struct is the main
+// data structure that is passed to the prompt builder to construct a prompt.
 type BuildRequest struct {
 	Prompt        string `json:"prompt"`
 	File          string `json:"file,omitempty"`
@@ -34,7 +35,8 @@ func (r *BuildRequest) Validate() error {
 	return nil
 }
 
-// Prompt represents the assembled prompt.
+// Prompt represents the assembled prompt. This struct is the output of the prompt
+// builder and contains all the components of the prompt.
 type Prompt struct {
 	SystemMessage string `json:"systemMessage,omitempty"`
 	UserPrompt    string `json:"userPrompt"`
@@ -63,7 +65,8 @@ func (p *Prompt) String() string {
 	return strings.Join(parts, "\n\n")
 }
 
-// FileContent represents file content with metadata.
+// FileContent represents file content with metadata. This struct is used to pass
+// file content and metadata between the file processor and the prompt builder.
 type FileContent struct {
 	Path    string `json:"path"`
 	Content []byte `json:"content"`
@@ -83,19 +86,23 @@ func (fc *FileContent) Validate() error {
 	return nil
 }
 
-// SystemPreset represents a predefined system message.
+// SystemPreset represents a predefined system message. This allows for reusable
+// system messages that can be referenced by name.
 type SystemPreset struct {
 	Name    string `json:"name"`
 	Message string `json:"message"`
 }
 
-// BuildResult represents the result of building a prompt.
+// BuildResult represents the result of building a prompt. This struct is the
+// return value of the BuildPrompt function and contains the assembled prompt.
 type BuildResult struct {
 	Prompt *Prompt `json:"prompt"`
 	Error  error   `json:"error,omitempty"`
 }
 
-// CLIFlags represents command line interface flags for the prompt builder.
+// CLIFlags represents command line interface flags for the prompt builder. This
+// struct is used to parse the command line arguments and convert them into a
+// BuildRequest.
 type CLIFlags struct {
 	Prompt        string `json:"prompt"`
 	File          string `json:"file,omitempty"`

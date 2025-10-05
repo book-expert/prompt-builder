@@ -18,13 +18,16 @@ var (
 	ErrFileExtensionNotAllowed = errors.New("file extension is not allowed") // Add this line
 )
 
-// FileProcessor handles file operations for prompt building.
+// FileProcessor handles file operations for prompt building. It is responsible for
+// reading, validating, and fencing file content to be included in a prompt.
 type FileProcessor struct {
 	maxFileSize       int64
 	allowedExtensions []string
 }
 
-// NewFileProcessor creates a new file processor with the given constraints.
+// NewFileProcessor creates a new file processor with the given constraints. This
+// function is the designated constructor for the FileProcessor struct and ensures
+// that the processor is initialized with the necessary constraints.
 func NewFileProcessor(maxFileSize int64, allowedExtensions []string) *FileProcessor {
 	return &FileProcessor{
 		maxFileSize:       maxFileSize,
@@ -32,7 +35,9 @@ func NewFileProcessor(maxFileSize int64, allowedExtensions []string) *FileProces
 	}
 }
 
-// ProcessFile reads and validates a file, returning its content.
+// ProcessFile reads and validates a file, returning its content. This is the main
+// entry point for the file processor and is responsible for orchestrating the
+// entire file processing workflow.
 func (fp *FileProcessor) ProcessFile(path string) (*FileContent, error) {
 	// Validate file path and extension
 	err := fp.ValidateFile(path)
@@ -79,7 +84,8 @@ func (fp *FileProcessor) ProcessFile(path string) (*FileContent, error) {
 	}, nil
 }
 
-// FenceContent wraps file content with BEGIN/END markers for security.
+// FenceContent wraps file content with BEGIN/END markers for security and clarity.
+// This makes it clear to the model where the file content begins and ends.
 func (fp *FileProcessor) FenceContent(content []byte, filename string) string {
 	ext := filepath.Ext(filename)
 
@@ -104,6 +110,8 @@ func (fp *FileProcessor) FenceContent(content []byte, filename string) string {
 }
 
 // ValidateFile checks if a file path is valid according to the processor's rules.
+// This function is responsible for ensuring that the file path is not empty, has a
+// valid extension, and that the extension is allowed.
 func (fp *FileProcessor) ValidateFile(path string) error {
 	if strings.TrimSpace(path) == "" {
 		return ErrFilePathRequired
@@ -183,7 +191,9 @@ func getLanguageFromExt(ext string) string {
 	return "text"
 }
 
-// validatePathSecurity ensures the file path is secure and doesn't contain path traversal attempts.
+// validatePathSecurity ensures the file path is secure and doesn't contain path
+// traversal attempts. This function is a critical security measure to prevent
+// the model from accessing unauthorized files.
 func (fp *FileProcessor) validatePathSecurity(absPath string) error {
 	// Check for suspicious path components that indicate path traversal attempts
 	suspiciousPatterns := []string{

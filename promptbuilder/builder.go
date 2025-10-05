@@ -14,13 +14,17 @@ var (
 	ErrPresetNameEmpty = errors.New("preset name cannot be empty")
 )
 
-// Builder is the main engine for constructing prompts.
+// Builder is the main engine for constructing prompts. It is responsible for
+// orchestrating the prompt building process, including file processing and system
+// preset management.
 type Builder struct {
 	fileProcessor *FileProcessor
 	systemPresets map[string]string
 }
 
-// New creates a new prompt builder with a given file processor.
+// New creates a new prompt builder with a given file processor. This function is
+// the designated constructor for the Builder struct and ensures that the builder is
+// initialized with a file processor.
 func New(fp *FileProcessor) *Builder {
 	return &Builder{
 		fileProcessor: fp,
@@ -28,7 +32,9 @@ func New(fp *FileProcessor) *Builder {
 	}
 }
 
-// AddSystemPreset adds a named system message preset to the builder.
+// AddSystemPreset adds a named system message preset to the builder. This allows
+// for reusable system messages that can be referenced by name when building a
+// prompt.
 func (b *Builder) AddSystemPreset(name, message string) error {
 	if strings.TrimSpace(name) == "" {
 		return ErrPresetNameEmpty // Use the static error
@@ -39,7 +45,9 @@ func (b *Builder) AddSystemPreset(name, message string) error {
 	return nil
 }
 
-// BuildPrompt constructs a prompt from a BuildRequest.
+// BuildPrompt constructs a prompt from a BuildRequest. This is the main entry
+// point for the prompt builder and is responsible for orchestrating the entire
+// prompt building process.
 func (b *Builder) BuildPrompt(req *BuildRequest) (*BuildResult, error) {
 	err := req.Validate()
 	if err != nil {

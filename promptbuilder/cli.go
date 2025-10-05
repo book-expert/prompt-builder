@@ -12,7 +12,9 @@ const (
 	defaultMaxFileSize = 1024 * 1024 // 1MB default max file size
 )
 
-// ParseFlags parses command line arguments into CLIFlags.
+// ParseFlags parses command line arguments into a CLIFlags struct. This function
+// is responsible for defining and parsing all the command line flags that the
+// application accepts.
 func ParseFlags(args []string) (*CLIFlags, error) {
 	flagSet := flag.NewFlagSet("prompt-builder", flag.ExitOnError)
 
@@ -48,7 +50,8 @@ func ParseFlags(args []string) (*CLIFlags, error) {
 	return &flags, nil
 }
 
-// PrintUsage prints the usage information for the CLI.
+// PrintUsage prints the usage information for the CLI. This function is called
+// when the user provides the -h or --help flag.
 func PrintUsage() {
 	log.Print(`Usage: prompt-builder [OPTIONS]
 
@@ -71,7 +74,8 @@ EXAMPLES:
 `)
 }
 
-// RunCLI runs the CLI application with the given arguments and writes output to the provided writer.
+// RunCLI runs the CLI application with the given arguments and writes the output
+// to the provided writer. This is the main entry point for the CLI application.
 func RunCLI(args []string, output io.Writer) error {
 	// Check for help flag
 	for _, arg := range args {
@@ -133,7 +137,9 @@ func RunCLI(args []string, output io.Writer) error {
 	return formatAndWriteOutput(output, flags.OutputFormat, result.Prompt)
 }
 
-// formatAndWriteOutput formats the prompt and writes it to the output writer.
+// formatAndWriteOutput formats the prompt according to the specified format and
+// writes it to the output writer. This function is responsible for all the output
+// formatting logic.
 func formatAndWriteOutput(output io.Writer, format string, prompt *Prompt) error {
 	var err error // Declare err here
 
